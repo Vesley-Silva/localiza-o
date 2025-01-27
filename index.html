@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Compartilhar Localização</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #f9f9f9;
+      color: #333;
+      text-align: center;
+    }
+    header img {
+      max-width: 150px;
+      border-radius: 10px;
+    }
+    #output {
+      margin-top: 20px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    input, button {
+      padding: 10px;
+      font-size: 16px;
+      margin: 5px 0;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    button {
+      background-color: #007BFF;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="sua-imagem-da-empresa.png" alt="Logo da Empresa">
+  </header>
+  <h1>Compartilhar Localização</h1>
+  <p>Insira seu nome e clique no botão para autorizar o uso do GPS e compartilhar sua localização.</p>
+  
+  <input type="text" id="clientName" placeholder="Seu nome">
+  <button id="authorizeGpsBtn">Autorizar GPS</button>
+  <button id="activateGpsBtn" class="hidden">Ativar GPS</button>
+  <button id="getLocationBtn" class="hidden">Compartilhar Localização</button>
+  
+  <div id="output"></div>
+
+  <script>
+    const authorizeGpsBtn = document.getElementById('authorizeGpsBtn');
+    const activateGpsBtn = document.getElementById('activateGpsBtn');
+    const getLocationBtn = document.getElementById('getLocationBtn');
+    const output = document.getElementById('output');
+    const clientNameInput = document.getElementById('clientName');
+
+    // Substitua pelo Token do Bot do Telegram e o ID do Grupo
+    const BOT_TOKEN = "8061086010:AAGyJwajkb8H1QqmQGuqUyH_06CIUc9qQLc";
+    const CHAT_ID = "-1002459990323";
+
+    authorizeGpsBtn.addEventListener('click', () => {
+      const clientName = clientNameInput.value.trim();
+
+      if (!clientName) {
+        alert("Por favor, insira seu nome antes de continuar.");
+        return;
+      }
+
+      // Tentar verificar se o GPS está ativado (simulação no navegador)
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          () => {
+            // GPS ativado
+            output.innerHTML = "<p>GPS ativado. Clique no botão abaixo para compartilhar sua localização.</p>";
+            getLocationBtn.classList.remove('hidden');
+            authorizeGpsBtn.classList.add('hidden');
+          },
+          () => {
+            // GPS desativado
+            output.innerHTML = "<p style='color: red;'>Parece que o GPS está desativado. Ative-o antes de continuar.</p>";
+            activateGpsBtn.classList.remove('hidden');
+            authorizeGpsBtn.classList.add('hidden');
+          }
+        );
+      } else {
+        output.innerHTML = "<p style='color: red;'>Seu navegador não suporta geolocalização.</p>";
+      }
+    });
+
+    activateGpsBtn.addEventListener('click', () => {
+      // Simulação de ativação do GPS
+      output.innerHTML = "<p>Ative o GPS manualmente no dispositivo e tente novamente.</p>";
+    });
+
+    getLocationBtn.addEventListener('click', () => {
+      const clientName = clientNameInput.value.trim();
+
+      if (navigator.geolocation) {
+        output.innerHTML = "Obtendo localização precisa... Certifique-se de que o GPS está ativado.";
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            output.innerHTML = `
+              <p>Localização Precisa Capturada:</p>
+              <p><span>Latitude:</span> ${latitude}</p>
+              <p><span>Longitude:</span> ${longitude}</p>
+              <p>Enviando localização...</p>
+            `;
+
+            const message = `
+📍 *Nova Localização Precisa Recebida*:
+👤 *Nome:* ${clientName}
+🌍 *Latitude:* ${latitude}
+🌍 *Longitude:* ${longitude}
+🔗 [Abrir no Google Maps](https://www.google.com/maps?q=${latitude},${longitude})
+`;
+
+            fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                chat_id: CHAT_ID,
+                text: message,
+                parse_mode: "Markdown",
+              }),
+            })
+              .then((response) => {
+                if (response.ok) {
+                  output.innerHTML += `<p style="color: green;">Localização enviada com sucesso!</p>`;
+                  setTimeout(() => {
+                    const whatsappRedirect = `https://api.whatsapp.com/send?text=Localiza%C3%A7%C3%A3o%20enviada%20com%20sucesso!`;
+                    window.location.href = whatsappRedirect;
+                  }, 3000);
+                } else {
+                  throw new Error("Erro ao enviar a localização.");
+                }
+              })
+              .catch((error) => {
+                output.innerHTML += `<p style="color: red;">${error.message}</p>`;
+              });
+          },
+          (error) => {
+            output.innerHTML = `<p style="color: red;">Erro ao obter localização: ${error.message}</p>`;
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0,
+          }
+        );
+      } else {
+        output.innerHTML = "<p style='color: red;'>Seu navegador não suporta geolocalização.</p>";
+      }
+    });
+  </script>
+</body>
+</html>
+
